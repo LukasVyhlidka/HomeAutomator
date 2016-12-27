@@ -2,3 +2,7 @@ server:
   port: 10000
   tomcat:
     max-threads: 4
+
+eQ3.cube:
+  host: 192.168.95.5
+  port: 62910
