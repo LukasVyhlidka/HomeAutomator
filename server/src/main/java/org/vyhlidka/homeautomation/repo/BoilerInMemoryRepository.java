@@ -25,7 +25,7 @@ class BoilerInMemoryRepository implements BoilerRepository {
     public Boiler getBoiler(final String id) {
         Validate.notNull(id, "id can not be null;");
 
-        Boiler res =  this.boilers.get(id);
+        Boiler res = this.boilers.get(id);
 
         if (res == null) {
             throw new ElementNotFoundExcepion("Boiler "+ id + " was not found");

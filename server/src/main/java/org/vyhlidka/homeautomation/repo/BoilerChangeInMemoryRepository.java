@@ -3,8 +3,8 @@ package org.vyhlidka.homeautomation.repo;
 import org.springframework.stereotype.Repository;
 import org.vyhlidka.homeautomation.domain.BoilerChange;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -13,7 +13,7 @@ import java.util.List;
 @Repository
 public class BoilerChangeInMemoryRepository implements BoilerChangeRepository {
 
-    private List<BoilerChange> changes = new LinkedList<BoilerChange>();
+    private List<BoilerChange> changes = new ArrayList<>();
 
     @Override
     public List<BoilerChange> getChanges() {
@@ -22,7 +22,7 @@ public class BoilerChangeInMemoryRepository implements BoilerChangeRepository {
 
     @Override
     public void clear() {
-        this.changes.clear();
+        this.changes = new ArrayList<>();
     }
 
     @Override

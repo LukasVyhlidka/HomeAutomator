@@ -9,11 +9,11 @@ import org.springframework.stereotype.Component;
 import org.vyhlidka.homeautomation.eq3.domain.LMaxMessage;
 import org.vyhlidka.homeautomation.eq3.domain.MaxMessage;
 
-import javax.net.SocketFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +47,9 @@ public class CubeClientImpl implements CubeClient {
         List<MaxMessage> messages = new ArrayList<>();
 
         logger.debug("Calling Cube.");
-        try (Socket socket = SocketFactory.getDefault().createSocket(this.host, this.port)) {
+        try (Socket socket = new Socket() /*SocketFactory.getDefault().createSocket(this.host, this.port)*/) {
+            socket.setSoTimeout(5 * 1000);
+            socket.connect(new InetSocketAddress(this.host, this.port), 5 * 1000);
 
             // TODO: Blah...
             try {

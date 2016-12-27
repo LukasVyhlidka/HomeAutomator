@@ -11,12 +11,11 @@ import org.vyhlidka.homeautomation.eq3.domain.LMaxMessage;
 import org.vyhlidka.homeautomation.repo.BoilerChangeRepository;
 import org.vyhlidka.homeautomation.repo.BoilerRepository;
 import org.vyhlidka.homeautomation.repo.ElementNotFoundExcepion;
-import org.vyhlidka.homeautomation.util.Box;
+import org.vyhlidka.homeautomation.util.IterableUtil;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.stream.Stream;
+import java.util.Arrays;
 
 /**
  * Created by lucky on 18.12.16.
@@ -45,57 +44,59 @@ public class BoilerUpdater {
 
     @Scheduled(fixedRate = 1 * 60 * 1000, initialDelay = 0)
     public void updateBoiler() {
+        logger.debug("Update Boiler start [{}]", this.boilerId);
+
+        //Create boiler if it is not in the repo
         try {
-            logger.debug("Update Boiler start [{}]", this.boilerId);
             Boiler b = this.boilerRepository.getBoiler(this.boilerId);
-
-            Boiler.BoilerState actualState = this.figureBoilerState();
-            if (actualState != b.getState()) {
-                b.setState(actualState);
-                this.boilerRepository.setBoiler(b);
-                this.changeRepository.addChange(new BoilerChange(LocalDateTime.now(), actualState));
-                logger.info("Updated Boiler [{}] to state [{}]", b.getId(), b.getState());
-            }
-
-            /*b.setState(b.getState() == Boiler.BoilerState.SWITCHED_ON
-                    ? Boiler.BoilerState.SWITCHED_OFF
-                    : Boiler.BoilerState.SWITCHED_ON);
-
-            this.boilerRepository.setBoiler(b);*/
-
-            logger.debug("Update Boiler end [{}]", b.getId());
-        } catch (ElementNotFoundExcepion e) {
+        } catch (ElementNotFoundExcepion ex) {
             logger.info("Repository does not contain the Boiler, creating one.");
             Boiler b = new Boiler();
             b.setState(Boiler.BoilerState.SWITCHED_OFF);
             b.setId(this.boilerId);
             this.boilerRepository.setBoiler(b);
+
+            this.changeRepository.addChange(new BoilerChange(this.boilerId, b.getState()));
         }
+
+        Boiler b = this.boilerRepository.getBoiler(this.boilerId);
+        Boiler.BoilerState actualState = this.figureBoilerState();
+        if (actualState != b.getState()) {
+            b.setState(actualState);
+            this.boilerRepository.setBoiler(b);
+            this.changeRepository.addChange(new BoilerChange(this.boilerId, actualState));
+            logger.info("Updated Boiler [{}] to state [{}]", b.getId(), b.getState());
+        }
+
+        logger.debug("Update Boiler end [{}]", b.getId());
     }
 
     @Scheduled(cron = "0 59 23 * * *")
     public void printAndClearStatistics() {
-        Box<Long> timeOnBox = new Box<>(0L);
-        Box<Long> timeOffBox = new Box<>(0L);
-        Box<BoilerChange> prevChangeStore = new Box<>();
-        Stream.concat(this.changeRepository.getChanges().stream(), Stream.of(new BoilerChange(Boiler.BoilerState.SWITCHED_OFF)))
-                .forEach(change -> {
-                    if (prevChangeStore.contains()) {
-                        long delta = ChronoUnit.SECONDS.between(change.dateTime, prevChangeStore.get().dateTime);
-                        if (prevChangeStore.get().state == Boiler.BoilerState.SWITCHED_ON) {
-                            timeOnBox.set(timeOnBox.get() + delta);
-                        } else {
-                            timeOnBox.set(timeOffBox.get() + delta);
-                        }
-                    }
+        long timeOn = 0;
+        long timeOff = 0;
+        BoilerChange prevChange = null;
 
-                    prevChangeStore.set(change);
-                });
+        Iterable<BoilerChange> changeIterable = IterableUtil.concat(
+                this.changeRepository.getChanges(),
+                Arrays.asList(new BoilerChange(this.boilerId, Boiler.BoilerState.SWITCHED_OFF)));
+        for (BoilerChange change : changeIterable) {
+            if (prevChange != null) {
+                long delta = ChronoUnit.SECONDS.between(prevChange.dateTime, change.dateTime);
+                if (prevChange.state == Boiler.BoilerState.SWITCHED_ON) {
+                    timeOn += delta;
+                } else {
+                    timeOff += delta;
+                }
+            }
+
+            prevChange = change;
+        }
 
         this.changeRepository.clear();
 
         logger.info("Boiler Statistics for day {}: \n\tOn Time: {} seconds\n\tOff Time: {} seconds\n\tOn Ratio: {}",
-                LocalDate.now(), timeOnBox.get(), timeOffBox.get(), (double)timeOnBox.get() / (timeOffBox.get() + timeOnBox.get()));
+                LocalDate.now(), timeOn, timeOff, (double) timeOn / (timeOn + timeOff));
     }
 
     private Boiler.BoilerState figureBoilerState() {
