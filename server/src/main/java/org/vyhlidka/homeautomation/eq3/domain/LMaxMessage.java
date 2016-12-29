@@ -19,6 +19,13 @@ public class LMaxMessage extends MaxMessage {
         this.devices = Collections.unmodifiableList(devices);
     }
 
+    @Override
+    public String toString() {
+        return "LMaxMessage{" +
+                "devices=" + devices +
+                '}';
+    }
+
     public static class MaxDevice {
 
         public MaxDeviceType type;
@@ -53,6 +60,17 @@ public class LMaxMessage extends MaxMessage {
             this.dateUntil = dateUntil;
             this.timeUntil = timeUntil;
             this.actualTemperature = actualTemperature;
+        }
+
+        @Override
+        public String toString() {
+            return "MaxDevice{" +
+                    "type=" + type +
+                    ", rfAddress=" + rfAddress +
+                    ", valvePosition=" + valvePosition +
+                    ", temperature=" + temperature +
+                    ", actualTemperature=" + actualTemperature +
+                    "}\n";
         }
     }
 

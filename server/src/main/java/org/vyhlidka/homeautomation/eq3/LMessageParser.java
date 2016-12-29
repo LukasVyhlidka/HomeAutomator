@@ -1,6 +1,8 @@
 package org.vyhlidka.homeautomation.eq3;
 
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.vyhlidka.homeautomation.eq3.domain.LMaxMessage;
 
@@ -14,6 +16,8 @@ import java.util.regex.Pattern;
 
 @Component
 public class LMessageParser implements MessageParser<LMaxMessage> {
+
+    private static final Logger logger = LoggerFactory.getLogger(LMessageParser.class);
 
     private static final Pattern msgPattern = Pattern.compile("^(\\w):(.+)$");
 
@@ -42,11 +46,14 @@ public class LMessageParser implements MessageParser<LMaxMessage> {
 
         //Validate that it ends to "ce 00"
         if (data.length < 2) {
+            logger.error("Message [{}] data part is of length {}", message, data.length);
             throw new IllegalArgumentException("Data part of the message has to be at least 2 bytes (0xce 0x00).");
         }
 
         if (data[data.length - 1] != 0x00 && data[data.length - 2] != 0xce) {
-            throw new IllegalArgumentException("Message data does not end with 0xce 0x00 bytes");
+            String error = MessageFormat.format("Message [{0}] data does not end with 0xce 0x00 bytes.", message);
+            logger.error(error);
+            throw new IllegalArgumentException(error);
         }
 
         List<LMaxMessage.MaxDevice> devices = new ArrayList<>();

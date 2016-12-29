@@ -48,9 +48,10 @@ public class LMessageParserTest {
 
     @Test
     public void testHomeExample() throws Exception {
-        final LMaxMessage msg = parser.parse("L:DBaBdQkSGASvAAAACQsVFl7xEhgALwAAAAsVFXrxEhgALwAAAAwWetakEhgELQAAANgLFRZW7BIYZC0AAAALFRYj7BIYZC0AAAA=");
+        final LMaxMessage msg = parser.parse("L:DBaBdQkSGAQmAAAA7gsVFl7xEhgAJgAAAAsVFXrxEhgAJgAAAAwWetakEhgELgAAAOcLFRZW7BIYAS4A5wALFRYj7BIYAC4AAAA=");
 
         assertThat(msg).isNotNull();
+        System.out.println(msg);
     }
 
     @Test

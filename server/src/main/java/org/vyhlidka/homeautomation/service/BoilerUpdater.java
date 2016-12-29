@@ -1,6 +1,7 @@
 package org.vyhlidka.homeautomation.service;
 
 import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -11,11 +12,11 @@ import org.vyhlidka.homeautomation.eq3.domain.LMaxMessage;
 import org.vyhlidka.homeautomation.repo.BoilerChangeRepository;
 import org.vyhlidka.homeautomation.repo.BoilerRepository;
 import org.vyhlidka.homeautomation.repo.ElementNotFoundExcepion;
-import org.vyhlidka.homeautomation.util.IterableUtil;
+import org.vyhlidka.homeautomation.util.BoilerStatistics;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by lucky on 18.12.16.
@@ -23,6 +24,7 @@ import java.util.Arrays;
 public class BoilerUpdater {
 
     private static final Logger logger = LoggerFactory.getLogger(BoilerUpdater.class);
+    private static final double threshold = 0.2;
 
     private final String boilerId;
     private final CubeClient cubeClient;
@@ -46,12 +48,13 @@ public class BoilerUpdater {
     public void updateBoiler() {
         logger.debug("Update Boiler start [{}]", this.boilerId);
 
+        Boiler b;
         //Create boiler if it is not in the repo
         try {
-            Boiler b = this.boilerRepository.getBoiler(this.boilerId);
+            b = this.boilerRepository.getBoiler(this.boilerId);
         } catch (ElementNotFoundExcepion ex) {
             logger.info("Repository does not contain the Boiler, creating one.");
-            Boiler b = new Boiler();
+            b = new Boiler();
             b.setState(Boiler.BoilerState.SWITCHED_OFF);
             b.setId(this.boilerId);
             this.boilerRepository.setBoiler(b);
@@ -59,12 +62,11 @@ public class BoilerUpdater {
             this.changeRepository.addChange(new BoilerChange(this.boilerId, b.getState()));
         }
 
-        Boiler b = this.boilerRepository.getBoiler(this.boilerId);
-        Boiler.BoilerState actualState = this.figureBoilerState();
-        if (actualState != b.getState()) {
-            b.setState(actualState);
+        Boiler.BoilerState newState = this.figureNewBoilerState(b);
+        if (newState != b.getState()) {
+            b.setState(newState);
             this.boilerRepository.setBoiler(b);
-            this.changeRepository.addChange(new BoilerChange(this.boilerId, actualState));
+            this.changeRepository.addChange(new BoilerChange(this.boilerId, newState));
             logger.info("Updated Boiler [{}] to state [{}]", b.getId(), b.getState());
         }
 
@@ -73,38 +75,52 @@ public class BoilerUpdater {
 
     @Scheduled(cron = "0 59 23 * * *")
     public void printAndClearStatistics() {
-        long timeOn = 0;
-        long timeOff = 0;
-        BoilerChange prevChange = null;
-
-        Iterable<BoilerChange> changeIterable = IterableUtil.concat(
-                this.changeRepository.getChanges(),
-                Arrays.asList(new BoilerChange(this.boilerId, Boiler.BoilerState.SWITCHED_OFF)));
-        for (BoilerChange change : changeIterable) {
-            if (prevChange != null) {
-                long delta = ChronoUnit.SECONDS.between(prevChange.dateTime, change.dateTime);
-                if (prevChange.state == Boiler.BoilerState.SWITCHED_ON) {
-                    timeOn += delta;
-                } else {
-                    timeOff += delta;
-                }
-            }
-
-            prevChange = change;
-        }
+        final List<BoilerChange> changes = this.changeRepository.getChanges();
 
         this.changeRepository.clear();
 
+        Pair<Long, Long> onOffTimes = BoilerStatistics.getOnOffTimes(changes);
+        long timeOn = onOffTimes.getLeft();
+        long timeOff = onOffTimes.getRight();
         logger.info("Boiler Statistics for day {}: \n\tOn Time: {} seconds\n\tOff Time: {} seconds\n\tOn Ratio: {}",
                 LocalDate.now(), timeOn, timeOff, (double) timeOn / (timeOn + timeOff));
+
+        int[] dayStats = BoilerStatistics.getDayStatistics(changes, LocalDate.now());
+        logger.info("Boiler Hour Statistics for day {}: {}",
+                LocalDate.now(), Arrays.toString(dayStats));
     }
 
-    private Boiler.BoilerState figureBoilerState() {
+    private Boiler.BoilerState figureNewBoilerState(Boiler boiler) {
+        Boiler.BoilerState actState = boiler.state;
+
         LMaxMessage deviceList = this.cubeClient.getDeviceList();
 
-        boolean on = deviceList.devices.stream()
+        final boolean anyThermostat = deviceList.devices.stream()
                 .filter(d -> d.type == LMaxMessage.MaxDeviceType.THERMOSTAT)
-                .anyMatch(t -> ((double) t.actualTemperature / 10) < (((double) t.temperature / 2) + 0.2));
+                .anyMatch(p -> true);
+
+        // either there is an ON-Thermostat or there are not thermostats at all.
+        final boolean thermostatOn = !anyThermostat || deviceList.devices.stream()
+                .filter(d -> d.type == LMaxMessage.MaxDeviceType.THERMOSTAT)
+                .anyMatch(t -> {
+                    double actualTemp = (double) t.actualTemperature / 10;
+                    double temp = (double) t.temperature / 2;
+
+                    //Either it is too cold (temp - threshold) or it is heating at present and not too hot (temp + threshold).
+                    return actualTemp <= (temp - threshold)
+                            || (actState == Boiler.BoilerState.SWITCHED_ON && actualTemp < (temp + threshold));
+                });
+
+        final boolean anyValve = deviceList.devices.stream()
+                .filter(d -> d.type == LMaxMessage.MaxDeviceType.VALVE)
+                .anyMatch(p -> true);
+
+        // Either there is at least one opened valve or there are no valves at all.
+        boolean valveOpened = !anyValve || deviceList.devices.stream()
+                .filter(d -> d.type == LMaxMessage.MaxDeviceType.VALVE)
+                .anyMatch(v -> v.valvePosition > 0);
+
+        boolean on = thermostatOn && valveOpened;
 
         return on ? Boiler.BoilerState.SWITCHED_ON : Boiler.BoilerState.SWITCHED_OFF;
     }
