@@ -96,6 +96,46 @@ public class BoilerStatistics {
         return hourStat;
     }
 
+    public static String visualizeStatistics(int[] dayStat) {
+        Validate.notNull(dayStat, "dayStat can not be null;");
+
+        StringBuilder sb = new StringBuilder();
+
+        String format = "%3s %%||";
+        for (int i = 0; i < dayStat.length; i++) {
+            format += "%2s|";
+        }
+
+        String percentFormat = "%3s";
+        for (int p = 100; p >= 0; p -= 10) {
+            sb.append(String.format(percentFormat, p));
+            sb.append("||");
+            for (int i = 0; i < dayStat.length; i++) {
+                if (dayStat[i] >= p) {
+                    sb.append("**");
+                } else {
+                    sb.append("  ");
+                }
+                sb.append("|");
+            }
+            sb.append("\n");
+        }
+
+        sb.append("-----");
+        for (int i = 0; i < dayStat.length; i++) {
+            sb.append("---");
+        }
+        sb.append("\n");
+
+        sb.append("   ||");
+        for (int i = 0; i < dayStat.length; i++) {
+            sb.append(String.format("%2d", i));
+            sb.append("|");
+        }
+
+        return sb.toString();
+    }
+
     private static double getRangeOverlapPercentile(LocalDateTime rangeStart, LocalDateTime rangeEnd, LocalDateTime usageStart, LocalDateTime usageEnd) {
         Validate.isTrue(rangeStart.isBefore(rangeEnd), "Range start is not before Range end.");
         Validate.isTrue(usageStart.isBefore(usageEnd), "Usage Start is not before usage end.");

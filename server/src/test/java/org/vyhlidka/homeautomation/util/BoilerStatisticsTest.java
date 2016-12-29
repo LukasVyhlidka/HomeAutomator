@@ -57,4 +57,16 @@ public class BoilerStatisticsTest {
                         83, 100, 100, 100, 100, 100, 100
                 );
     }
+
+    @Test
+    public void testVisualize() throws Exception {
+        int[] stats = new int[24];
+        Arrays.fill(stats, 15);
+
+        stats[7] = 100;
+        stats[8] = 55;
+
+        String res = BoilerStatistics.visualizeStatistics(stats);
+        System.out.println(res);
+    }
 }

@@ -88,6 +88,9 @@ public class BoilerUpdater {
         int[] dayStats = BoilerStatistics.getDayStatistics(changes, LocalDate.now());
         logger.info("Boiler Hour Statistics for day {}: {}",
                 LocalDate.now(), Arrays.toString(dayStats));
+
+        String visualStats = BoilerStatistics.visualizeStatistics(dayStats);
+        logger.info("visualization: \n" + visualStats);
     }
 
     private Boiler.BoilerState figureNewBoilerState(Boiler boiler) {
