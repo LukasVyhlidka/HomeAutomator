@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -42,23 +43,31 @@ public class BoilerStatistics {
         return Pair.of(timeOn, timeOff);
     }
 
+    private static LocalDateTime getMax(LocalDateTime dt1, LocalDateTime dt2) {
+        return dt1.isAfter(dt2) ? dt1 : dt2;
+    }
+
     public static int[] getDayStatistics(List<BoilerChange> changes, LocalDate day) {
         Validate.notNull(changes, "changes can not be null;");
         Validate.notNull(day, "day can not be null;");
 
+        ArrayList<BoilerChange> changeArr = new ArrayList<>(changes);
+
         LocalDateTime dayStart = day.atStartOfDay();
         LocalDateTime dayEnd = dayStart.with(LocalTime.MAX);
 
-        changes.sort(Comparator.comparing(ch -> ch.dateTime));
-        LocalDateTime lastChangeTime = changes.isEmpty() ? dayEnd : changes.get(changes.size() - 1).dateTime;
+        changeArr.sort(Comparator.comparing(ch -> ch.dateTime));
+
+        LocalDateTime lastChangeTime = changes.isEmpty() ? LocalDateTime.now() : changes.get(changes.size() - 1).dateTime;
+        lastChangeTime = getMax(LocalDateTime.now(), lastChangeTime);
 
         int[] hourStat = new int[24];
         Arrays.fill(hourStat, 0);
 
         // Add one change after the day end to calculate the last boiler state.
         Iterable<BoilerChange> changeIterable = IterableUtil.concat(
-                changes,
-                Arrays.asList(new BoilerChange("fake id", lastChangeTime.plus(1, ChronoUnit.DAYS), Boiler.BoilerState.SWITCHED_OFF)));
+                changeArr,
+                Arrays.asList(new BoilerChange("fake id", lastChangeTime, Boiler.BoilerState.SWITCHED_OFF)));
 
         BoilerChange prevChange = null;
         for (BoilerChange change : changeIterable) {
@@ -111,7 +120,7 @@ public class BoilerStatistics {
             sb.append(String.format(percentFormat, p));
             sb.append("||");
             for (int i = 0; i < dayStat.length; i++) {
-                if (dayStat[i] >= p) {
+                if (dayStat[i] >= p && dayStat[i] != 0) {
                     sb.append("**");
                 } else {
                     sb.append("  ");

@@ -15,13 +15,15 @@ import java.util.List;
  */
 public class BoilerStatisticsTest {
 
+    private static final LocalDate yesterday = LocalDate.now().minus(1, ChronoUnit.DAYS);
+
     @Test
     public void testWholeDayOnWithOnOnly() throws Exception {
         List<BoilerChange> changes = Arrays.asList(
-                new BoilerChange("b1", LocalDate.now().atStartOfDay(), Boiler.BoilerState.SWITCHED_ON)
+                new BoilerChange("b1", yesterday.atStartOfDay(), Boiler.BoilerState.SWITCHED_ON)
         );
 
-        final int[] stats = BoilerStatistics.getDayStatistics(changes, LocalDate.now());
+        final int[] stats = BoilerStatistics.getDayStatistics(changes, yesterday);
 
         Assertions.assertThat(stats).hasSize(24).containsOnly(100);
     }
@@ -29,11 +31,11 @@ public class BoilerStatisticsTest {
     @Test
     public void testWholeDayOn() throws Exception {
         List<BoilerChange> changes = Arrays.asList(
-                new BoilerChange("b1", LocalDate.now().atStartOfDay(), Boiler.BoilerState.SWITCHED_ON),
-                new BoilerChange("b1", LocalDate.now().atStartOfDay().plus(1, ChronoUnit.DAYS), Boiler.BoilerState.SWITCHED_OFF)
+                new BoilerChange("b1", yesterday.atStartOfDay(), Boiler.BoilerState.SWITCHED_ON),
+                new BoilerChange("b1", yesterday.atStartOfDay().plus(1, ChronoUnit.DAYS), Boiler.BoilerState.SWITCHED_OFF)
         );
 
-        final int[] stats = BoilerStatistics.getDayStatistics(changes, LocalDate.now());
+        final int[] stats = BoilerStatistics.getDayStatistics(changes, yesterday);
 
         Assertions.assertThat(stats).hasSize(24).containsOnly(100);
     }
@@ -41,13 +43,13 @@ public class BoilerStatisticsTest {
     @Test
     public void testSwitching() throws Exception {
         List<BoilerChange> changes = Arrays.asList(
-                new BoilerChange("b1", LocalDate.now().atStartOfDay(), Boiler.BoilerState.SWITCHED_OFF),
-                new BoilerChange("b1", LocalDate.now().atTime(6, 45), Boiler.BoilerState.SWITCHED_ON),
-                new BoilerChange("b1", LocalDate.now().atTime(8, 30), Boiler.BoilerState.SWITCHED_OFF),
-                new BoilerChange("b1", LocalDate.now().atTime(17, 10), Boiler.BoilerState.SWITCHED_ON)
+                new BoilerChange("b1", yesterday.atStartOfDay(), Boiler.BoilerState.SWITCHED_OFF),
+                new BoilerChange("b1", yesterday.atTime(6, 45), Boiler.BoilerState.SWITCHED_ON),
+                new BoilerChange("b1", yesterday.atTime(8, 30), Boiler.BoilerState.SWITCHED_OFF),
+                new BoilerChange("b1", yesterday.atTime(17, 10), Boiler.BoilerState.SWITCHED_ON)
         );
 
-        final int[] stats = BoilerStatistics.getDayStatistics(changes, LocalDate.now());
+        final int[] stats = BoilerStatistics.getDayStatistics(changes, yesterday);
 
         Assertions.assertThat(stats).hasSize(24).
                 containsExactly(

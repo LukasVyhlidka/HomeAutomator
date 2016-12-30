@@ -10,8 +10,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.vyhlidka.homeautomation.domain.Boiler;
+import org.vyhlidka.homeautomation.domain.BoilerChange;
+import org.vyhlidka.homeautomation.repo.BoilerChangeRepository;
 import org.vyhlidka.homeautomation.repo.BoilerRepository;
+import org.vyhlidka.homeautomation.util.BoilerStatistics;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -22,11 +27,14 @@ import java.util.Set;
 public class BoilerEndpoint {
 
     private final BoilerRepository boilerRepository;
+    private final BoilerChangeRepository changeRepository;
 
     @Autowired
-    public BoilerEndpoint(final BoilerRepository boilerRepository) {
+    public BoilerEndpoint(final BoilerRepository boilerRepository, final BoilerChangeRepository changeRepository) {
         Validate.notNull(boilerRepository, "boilerRepository can not be null;");
+        Validate.notNull(changeRepository, "changeRepository can not be null;");
         this.boilerRepository = boilerRepository;
+        this.changeRepository = changeRepository;
     }
 
     @RequestMapping(method = RequestMethod.GET)
@@ -42,6 +50,18 @@ public class BoilerEndpoint {
 
         Boiler b = this.boilerRepository.getBoiler(id);
         return ResponseEntity.ok(b);
+    }
+
+    @RequestMapping(value = "/{id}/statistics", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> getBoilerStatistics(@PathVariable(name = "id") String id) {
+        if (StringUtils.isBlank(id)) {
+            return ResponseEntity.badRequest().body(null);
+        }
+
+        final List<BoilerChange> changes = this.changeRepository.getChanges();
+        int[] dayStats = BoilerStatistics.getDayStatistics(changes, LocalDate.now());
+        String res = BoilerStatistics.visualizeStatistics(dayStats);
+        return ResponseEntity.ok(res);
     }
 
 }
