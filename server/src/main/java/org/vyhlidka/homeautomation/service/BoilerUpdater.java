@@ -14,6 +14,9 @@ import org.vyhlidka.homeautomation.repo.BoilerRepository;
 import org.vyhlidka.homeautomation.repo.ElementNotFoundExcepion;
 import org.vyhlidka.homeautomation.util.BoilerStatistics;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -24,6 +27,7 @@ import java.util.List;
 public class BoilerUpdater {
 
     private static final Logger logger = LoggerFactory.getLogger(BoilerUpdater.class);
+    private static final String statsFolder = "data/statistics/";
     private static final double threshold = 0.2;
 
     private final String boilerId;
@@ -91,6 +95,14 @@ public class BoilerUpdater {
 
         String visualStats = BoilerStatistics.visualizeStatistics(dayStats);
         logger.info("visualization: \n" + visualStats);
+
+        File f = new File(statsFolder, LocalDate.now().toString() + ".log");
+        f.mkdirs();
+        try (FileWriter fw = new FileWriter(f)) {
+            fw.write(visualStats);
+        } catch (IOException ex) {
+            logger.error("Error during Statistics file output.", ex);
+        }
     }
 
     private Boiler.BoilerState figureNewBoilerState(Boiler boiler) {
