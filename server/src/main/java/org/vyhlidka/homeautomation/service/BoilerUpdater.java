@@ -96,8 +96,10 @@ public class BoilerUpdater {
         String visualStats = BoilerStatistics.visualizeStatistics(dayStats);
         logger.info("visualization: \n" + visualStats);
 
-        File f = new File(statsFolder, LocalDate.now().toString() + ".log");
-        f.mkdirs();
+        File statsDir = new File(statsFolder);
+        statsDir.mkdirs();
+
+        File f = new File(statsDir, LocalDate.now().toString() + ".log");
         try (FileWriter fw = new FileWriter(f)) {
             fw.write(visualStats);
         } catch (IOException ex) {
