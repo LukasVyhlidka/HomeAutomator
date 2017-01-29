@@ -4,5 +4,5 @@ server:
     max-threads: 4
 
 eQ3.cube:
-  host: 192.168.95.5
+  host: 192.168.95.215
   port: 62910

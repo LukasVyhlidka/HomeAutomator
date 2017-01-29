@@ -18,6 +18,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * Created by lucky on 26.12.16.
@@ -44,10 +45,28 @@ public class CubeClientImpl implements CubeClient {
 
     @Override
     public LMaxMessage getDeviceList() {
+        List<MaxMessage> messages = this.getInitialMessages();
+        final Optional<MaxMessage> lMessage = messages.stream().filter(m -> m instanceof LMaxMessage).findFirst();
+        if (!lMessage.isPresent()) {
+            logger.error("Cube response does not contain L Message.");
+            throw new IllegalStateException("Cube response does not contain L Message.");
+        }
+
+        return (LMaxMessage) lMessage.get();
+    }
+
+    @Override
+    public List<MaxMessage> getInitialMessages() {
         List<MaxMessage> messages = new ArrayList<>();
 
+        this.processCubeLines(line -> messages.add(this.processor.processMessage(line)));
+
+        return messages;
+    }
+
+    private void processCubeLines(Consumer<String> lineConsumer) {
         logger.debug("Calling Cube.");
-        try (Socket socket = new Socket() /*SocketFactory.getDefault().createSocket(this.host, this.port)*/) {
+        try (Socket socket = new Socket()) {
             socket.setSoTimeout(5 * 1000);
             socket.connect(new InetSocketAddress(this.host, this.port), 5 * 1000);
 
@@ -66,7 +85,7 @@ public class CubeClientImpl implements CubeClient {
                 String line;
                 while ((line = br.readLine()) != null) {
                     logger.debug("\t{}", line);
-                    messages.add(this.processor.processMessage(line));
+                    lineConsumer.accept(line);
                 }
 
                 logger.debug("All lines read.");
@@ -76,13 +95,5 @@ public class CubeClientImpl implements CubeClient {
             throw new IllegalStateException("Cube call error", e);
         }
         logger.debug("Cube called.");
-
-        final Optional<MaxMessage> lMessage = messages.stream().filter(m -> m instanceof LMaxMessage).findFirst();
-        if (!lMessage.isPresent()) {
-            logger.error("Cube response does not contain L Message.");
-            throw new IllegalStateException("Cube response does not contain L Message.");
-        }
-
-        return (LMaxMessage) lMessage.get();
     }
 }

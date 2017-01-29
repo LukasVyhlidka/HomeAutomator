@@ -28,7 +28,7 @@ public class BoilerUpdater {
 
     private static final Logger logger = LoggerFactory.getLogger(BoilerUpdater.class);
     private static final String statsFolder = "data/statistics/";
-    private static final double threshold = 0.2;
+    private static final double threshold = 0.25;
 
     private final String boilerId;
     private final CubeClient cubeClient;
