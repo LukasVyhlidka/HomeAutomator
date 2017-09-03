@@ -52,8 +52,8 @@ public class LMessageParser implements MessageParser<LMaxMessage> {
 
         if (data[data.length - 1] != 0x00 && data[data.length - 2] != 0xce) {
             String error = MessageFormat.format("Message [{0}] data does not end with 0xce 0x00 bytes.", message);
-            logger.error(error);
-            throw new IllegalArgumentException(error);
+            logger.warn(error);
+            //throw new IllegalArgumentException(error);
         }
 
         List<LMaxMessage.MaxDevice> devices = new ArrayList<>();

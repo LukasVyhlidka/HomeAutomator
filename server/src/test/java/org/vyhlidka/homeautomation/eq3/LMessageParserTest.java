@@ -55,6 +55,24 @@ public class LMessageParserTest {
     }
 
     @Test
+    public void testRealLMessageWithout00AtEnd() throws Exception {
+        final LMaxMessage msg = parser.parse("L:DBaBdQkSGAQuAAAA1wsVFlYJEhhkLQAAAAsVFLAJEhgHKgDTAAwWgQYJEhgEKgAAANMLFRZeCRIYZC4AAAALFRYjCRIYZC0AAAAMFnrWCRIYBC0AAADM");
+        System.out.println(msg);
+
+        assertThat(msg.devices)
+                .extracting("type")
+                .containsOnly(
+                        LMaxMessage.MaxDeviceType.THERMOSTAT,
+                        LMaxMessage.MaxDeviceType.VALVE,
+                        LMaxMessage.MaxDeviceType.VALVE,
+                        LMaxMessage.MaxDeviceType.THERMOSTAT,
+                        LMaxMessage.MaxDeviceType.VALVE,
+                        LMaxMessage.MaxDeviceType.VALVE,
+                        LMaxMessage.MaxDeviceType.THERMOSTAT
+                );
+    }
+
+    @Test
     public void testHomeExample2() throws Exception {
         final LMaxMessage msg = parser.parse("L:DBaBdQkSGASvAAAAFgsVFl7xEhgALwAAAAsVFXrxEhgALwAAAAwWetakEhgELgAAAN8LFRZW7BIYZC4AAAALFRYj7BIYZC4AAAA=");
 

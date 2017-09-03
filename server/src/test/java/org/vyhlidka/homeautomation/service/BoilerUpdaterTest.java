@@ -8,8 +8,10 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.vyhlidka.homeautomation.domain.Boiler;
 import org.vyhlidka.homeautomation.eq3.CubeClient;
 import org.vyhlidka.homeautomation.eq3.domain.LMaxMessage;
+import org.vyhlidka.homeautomation.eq3.domain.MMaxMessage;
 import org.vyhlidka.homeautomation.repo.BoilerChangeRepository;
 import org.vyhlidka.homeautomation.repo.BoilerRepository;
+import org.vyhlidka.homeautomation.repo.RoomRepository;
 
 import java.util.Arrays;
 
@@ -34,11 +36,14 @@ public class BoilerUpdaterTest {
     @Mock
     private BoilerChangeRepository boilerChangeRepo;
 
+    @Mock
+    private RoomRepository roomRepository;
+
     private BoilerUpdater updater;
 
     @Before
     public void setUp() throws Exception {
-        this.updater = new BoilerUpdater(BOILER_ID, this.cubeClient, this.boilerChangeRepo, this.boilerRepo);
+        this.updater = new BoilerUpdater(BOILER_ID, this.cubeClient, this.boilerChangeRepo, this.boilerRepo, this.roomRepository);
     }
 
     @Test
@@ -163,5 +168,13 @@ public class BoilerUpdaterTest {
 
     private static LMaxMessage.MaxDevice generateDevice(LMaxMessage.MaxDeviceType type, int adr, int temperature, int actualTemperature) {
         return new LMaxMessage.MaxDevice(type, adr, (byte) 0, 0, (byte) 4, temperature, 0, (byte) 0, actualTemperature);
+    }
+
+    private static MMaxMessage.MaxRoomMeta genRoomMeta(int id, String name) {
+        return new MMaxMessage.MaxRoomMeta(id, name, 42);
+    }
+
+    private static MMaxMessage.MaxDeviceMeta genDevMeta(int rfAddr, String name, int roomId) {
+        return new MMaxMessage.MaxDeviceMeta(MMaxMessage.DeviceTypeMeta.HeatingThermostat, rfAddr, "XXX", name, roomId);
     }
 }

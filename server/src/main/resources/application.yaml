@@ -6,3 +6,6 @@ server:
 eQ3.cube:
   host: 192.168.95.215
   port: 62910
+
+
+  logging.level.org.vyhlidka: DEBUG
