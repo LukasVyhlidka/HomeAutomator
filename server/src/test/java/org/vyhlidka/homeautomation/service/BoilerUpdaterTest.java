@@ -3,9 +3,11 @@ package org.vyhlidka.homeautomation.service;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.vyhlidka.homeautomation.domain.Boiler;
+import org.vyhlidka.homeautomation.domain.Room;
 import org.vyhlidka.homeautomation.eq3.CubeClient;
 import org.vyhlidka.homeautomation.eq3.domain.LMaxMessage;
 import org.vyhlidka.homeautomation.eq3.domain.MMaxMessage;
@@ -15,6 +17,7 @@ import org.vyhlidka.homeautomation.repo.RoomRepository;
 
 import java.util.Arrays;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -48,126 +51,201 @@ public class BoilerUpdaterTest {
 
     @Test
     public void testContinueHeatingWhenNotTooHot() throws Exception {
-        when(this.cubeClient.getDeviceList()).thenReturn(new LMaxMessage(
-                "L:blabla",
-                Arrays.asList(genThermostat(1024, 40, 201))));
+        when(this.cubeClient.getInitialMessages()).thenReturn(
+                Arrays.asList(
+                        new LMaxMessage(
+                                "L:blabla", Arrays.asList(
+                                    genThermostat(1024, 40, 201),
+                                    genValve(1024, 40, (byte) 32)))
+                )
+        );
 
-        when(this.boilerRepo.getBoiler(BOILER_ID)).thenReturn(Boiler.build(BOILER_ID, Boiler.BoilerState.SWITCHED_ON));
+        this.mockDefaultRoomRepo(Boiler.BoilerState.SWITCHED_ON);
 
-        this.updater.updateBoiler();
+        this.updater.updateRooms();
 
-        verify(this.boilerRepo).getBoiler(BOILER_ID);
-        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo);
+        this.verifySavedRoomState(Boiler.BoilerState.SWITCHED_ON);
+        verify(this.roomRepository).getRooms();
+        verify(this.roomRepository).getRoom(-1); // The default room (test does not create rooms)
+
+        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo, this.roomRepository);
     }
 
     @Test
     public void testContinueHeatingWhenNotTooCold() throws Exception {
-        when(this.cubeClient.getDeviceList()).thenReturn(new LMaxMessage(
-                "L:blabla",
-                Arrays.asList(genThermostat(1024, 40, 199))));
+        when(this.cubeClient.getInitialMessages()).thenReturn(
+                Arrays.asList(
+                        new LMaxMessage(
+                                "L:blabla", Arrays.asList(
+                                genThermostat(1024, 40, 199),
+                                genValve(1024, 40, (byte) 80)))
+                )
+        );
 
-        when(this.boilerRepo.getBoiler(BOILER_ID)).thenReturn(Boiler.build(BOILER_ID, Boiler.BoilerState.SWITCHED_ON));
+        this.mockDefaultRoomRepo(Boiler.BoilerState.SWITCHED_ON);
 
-        this.updater.updateBoiler();
+        this.updater.updateRooms();
 
-        verify(this.boilerRepo).getBoiler(BOILER_ID);
-        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo);
+        this.verifySavedRoomState(Boiler.BoilerState.SWITCHED_ON);
+        verify(this.roomRepository).getRooms();
+        verify(this.roomRepository).getRoom(-1); // The default room (test does not create rooms)
+
+        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo, this.roomRepository);
+    }
+
+    private void verifySavedRoomState(Boiler.BoilerState state) {
+        ArgumentCaptor<Room> roomCaptor = ArgumentCaptor.forClass(Room.class);
+        verify(this.roomRepository).saveRoom(roomCaptor.capture());
+        Room room = roomCaptor.getValue();
+        assertThat(room.state).isEqualTo(state);
+    }
+
+    private void mockDefaultRoomRepo(Boiler.BoilerState state) {
+        when(this.roomRepository.getRoom(-1)).thenReturn(new Room(-1, "Default", state));
     }
 
     @Test
     public void testContinueHeatingWhenTooCold() throws Exception {
-        when(this.cubeClient.getDeviceList()).thenReturn(new LMaxMessage(
-                "L:blabla",
-                Arrays.asList(genThermostat(1024, 40, 195))));
+        when(this.cubeClient.getInitialMessages()).thenReturn(
+                Arrays.asList(
+                        new LMaxMessage(
+                                "L:blabla", Arrays.asList(
+                                genThermostat(1024, 40, 195),
+                                genValve(1024, 40, (byte) 100)))
+                )
+        );
 
-        when(this.boilerRepo.getBoiler(BOILER_ID)).thenReturn(Boiler.build(BOILER_ID, Boiler.BoilerState.SWITCHED_ON));
+        this.mockDefaultRoomRepo(Boiler.BoilerState.SWITCHED_ON);
 
-        this.updater.updateBoiler();
+        this.updater.updateRooms();
 
-        verify(this.boilerRepo).getBoiler(BOILER_ID);
-        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo);
+        this.verifySavedRoomState(Boiler.BoilerState.SWITCHED_ON);
+        verify(this.roomRepository).getRooms();
+        verify(this.roomRepository).getRoom(-1); // The default room (test does not create rooms)
+
+        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo, this.roomRepository);
     }
 
     @Test
     public void testStopHeatingWhenTooHot() throws Exception {
-        when(this.cubeClient.getDeviceList()).thenReturn(new LMaxMessage(
-                "L:blabla",
-                Arrays.asList(genThermostat(1024, 40, 202))));
+        when(this.cubeClient.getInitialMessages()).thenReturn(
+                Arrays.asList(
+                        new LMaxMessage(
+                                "L:blabla", Arrays.asList(
+                                genThermostat(1024, 40, 202),
+                                genValve(1024, 40, (byte) 80)))
+                )
+        );
 
-        when(this.boilerRepo.getBoiler(BOILER_ID)).thenReturn(Boiler.build(BOILER_ID, Boiler.BoilerState.SWITCHED_ON));
+        this.mockDefaultRoomRepo(Boiler.BoilerState.SWITCHED_ON);
 
-        this.updater.updateBoiler();
+        this.updater.updateRooms();
 
-        verify(this.boilerRepo).getBoiler(BOILER_ID);
-        verify(this.boilerRepo).setBoiler(Boiler.build(BOILER_ID, Boiler.BoilerState.SWITCHED_OFF));
-        verify(this.boilerChangeRepo).addChange(any());
-        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo);
+        this.verifySavedRoomState(Boiler.BoilerState.SWITCHED_OFF);
+        verify(this.roomRepository).getRooms();
+        verify(this.roomRepository).getRoom(-1); // The default room (test does not create rooms)
+
+        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo, this.roomRepository);
     }
 
     @Test
     public void testStartHeatingWhenTooCold() throws Exception {
-        when(this.cubeClient.getDeviceList()).thenReturn(new LMaxMessage(
-                "L:blabla",
-                Arrays.asList(genThermostat(1024, 40, 198))));
+        when(this.cubeClient.getInitialMessages()).thenReturn(
+                Arrays.asList(
+                        new LMaxMessage(
+                                "L:blabla", Arrays.asList(
+                                genThermostat(1024, 40, 198),
+                                genValve(1024, 40, (byte) 80)))
+                )
+        );
 
-        when(this.boilerRepo.getBoiler(BOILER_ID)).thenReturn(Boiler.build(BOILER_ID, Boiler.BoilerState.SWITCHED_OFF));
+        this.mockDefaultRoomRepo(Boiler.BoilerState.SWITCHED_ON);
 
-        this.updater.updateBoiler();
+        this.updater.updateRooms();
 
-        verify(this.boilerRepo).getBoiler(BOILER_ID);
-        verify(this.boilerRepo).setBoiler(Boiler.build(BOILER_ID, Boiler.BoilerState.SWITCHED_ON));
-        verify(this.boilerChangeRepo).addChange(any());
-        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo);
+        this.verifySavedRoomState(Boiler.BoilerState.SWITCHED_ON);
+        verify(this.roomRepository).getRooms();
+        verify(this.roomRepository).getRoom(-1); // The default room (test does not create rooms)
+
+        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo, this.roomRepository);
     }
 
     @Test
     public void testContinueOffWhenNotTooCold() throws Exception {
-        when(this.cubeClient.getDeviceList()).thenReturn(new LMaxMessage(
-                "L:blabla",
-                Arrays.asList(genThermostat(1024, 40, 199))));
+        when(this.cubeClient.getInitialMessages()).thenReturn(
+                Arrays.asList(
+                        new LMaxMessage(
+                                "L:blabla", Arrays.asList(
+                                genThermostat(1024, 40, 199),
+                                genValve(1024, 40, (byte) 80)))
+                )
+        );
 
-        when(this.boilerRepo.getBoiler(BOILER_ID)).thenReturn(Boiler.build(BOILER_ID, Boiler.BoilerState.SWITCHED_OFF));
+        this.mockDefaultRoomRepo(Boiler.BoilerState.SWITCHED_OFF);
 
-        this.updater.updateBoiler();
+        this.updater.updateRooms();
 
-        verify(this.boilerRepo).getBoiler(BOILER_ID);
-        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo);
+        this.verifySavedRoomState(Boiler.BoilerState.SWITCHED_OFF);
+        verify(this.roomRepository).getRooms();
+        verify(this.roomRepository).getRoom(-1); // The default room (test does not create rooms)
+
+        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo, this.roomRepository);
     }
 
     @Test
     public void testContinueOffWhenNotTooHot() throws Exception {
-        when(this.cubeClient.getDeviceList()).thenReturn(new LMaxMessage(
-                "L:blabla",
-                Arrays.asList(genThermostat(1024, 40, 201))));
+        when(this.cubeClient.getInitialMessages()).thenReturn(
+                Arrays.asList(
+                        new LMaxMessage(
+                                "L:blabla", Arrays.asList(
+                                genThermostat(1024, 40, 201),
+                                genValve(1024, 40, (byte) 80)))
+                )
+        );
 
-        when(this.boilerRepo.getBoiler(BOILER_ID)).thenReturn(Boiler.build(BOILER_ID, Boiler.BoilerState.SWITCHED_OFF));
+        this.mockDefaultRoomRepo(Boiler.BoilerState.SWITCHED_OFF);
 
-        this.updater.updateBoiler();
+        this.updater.updateRooms();
 
-        verify(this.boilerRepo).getBoiler(BOILER_ID);
-        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo);
+        this.verifySavedRoomState(Boiler.BoilerState.SWITCHED_OFF);
+        verify(this.roomRepository).getRooms();
+        verify(this.roomRepository).getRoom(-1); // The default room (test does not create rooms)
+
+        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo, this.roomRepository);
     }
 
     @Test
     public void testContinueOffWhenTooHot() throws Exception {
-        when(this.cubeClient.getDeviceList()).thenReturn(new LMaxMessage(
-                "L:blabla",
-                Arrays.asList(genThermostat(1024, 40, 210))));
+        when(this.cubeClient.getInitialMessages()).thenReturn(
+                Arrays.asList(
+                        new LMaxMessage(
+                                "L:blabla", Arrays.asList(
+                                genThermostat(1024, 40, 202),
+                                genValve(1024, 40, (byte) 80)))
+                )
+        );
 
-        when(this.boilerRepo.getBoiler(BOILER_ID)).thenReturn(Boiler.build(BOILER_ID, Boiler.BoilerState.SWITCHED_OFF));
+        this.mockDefaultRoomRepo(Boiler.BoilerState.SWITCHED_OFF);
 
-        this.updater.updateBoiler();
+        this.updater.updateRooms();
 
-        verify(this.boilerRepo).getBoiler(BOILER_ID);
-        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo);
+        this.verifySavedRoomState(Boiler.BoilerState.SWITCHED_OFF);
+        verify(this.roomRepository).getRooms();
+        verify(this.roomRepository).getRoom(-1); // The default room (test does not create rooms)
+
+        verifyNoMoreInteractions(this.boilerRepo, this.boilerChangeRepo, this.roomRepository);
     }
 
     private static LMaxMessage.MaxDevice genThermostat(int adr, int temperature, int actualTemperature) {
-        return generateDevice(LMaxMessage.MaxDeviceType.THERMOSTAT, adr, temperature, actualTemperature);
+        return generateDevice(LMaxMessage.MaxDeviceType.THERMOSTAT, adr, (byte) 4, temperature, actualTemperature);
     }
 
-    private static LMaxMessage.MaxDevice generateDevice(LMaxMessage.MaxDeviceType type, int adr, int temperature, int actualTemperature) {
-        return new LMaxMessage.MaxDevice(type, adr, (byte) 0, 0, (byte) 4, temperature, 0, (byte) 0, actualTemperature);
+    private static LMaxMessage.MaxDevice genValve(int adr, int temperature, byte valve) {
+        return generateDevice(LMaxMessage.MaxDeviceType.VALVE, adr, valve, temperature, 0);
+    }
+
+    private static LMaxMessage.MaxDevice generateDevice(LMaxMessage.MaxDeviceType type, int adr, byte valve, int temperature, int actualTemperature) {
+        return new LMaxMessage.MaxDevice(type, adr, (byte) 0, 0, valve, temperature, 0, (byte) 0, actualTemperature);
     }
 
     private static MMaxMessage.MaxRoomMeta genRoomMeta(int id, String name) {
