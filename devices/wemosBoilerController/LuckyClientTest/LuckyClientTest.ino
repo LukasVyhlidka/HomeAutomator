@@ -29,7 +29,7 @@ const char* ssidPass = "<wifiPass>";
 
 /* Wifi Static configuration. It can be turned off (to obtain it from DHCP). */
 #define WIFI_STATIC_CONF false
-#define WIFI_STATIC_CONF_IP IPAddress(192, 168, 95, 210)
+#define WIFI_STATIC_CONF_IP IPAddress(192, 168, 95, 5)
 #define WIFI_STATIC_CONF_DNS IPAddress(192, 168, 95, 254)
 #define WIFI_STATIC_CONF_GW IPAddress(192, 168, 95, 254)
 
@@ -38,12 +38,12 @@ const String serverUrl = "http://192.168.95.250:10000/boilers/TestBoiler";
 unsigned long startTime;
 
 void setup() {
-    startTime = millis();
+    startTime = micros();
 
     Serial.begin(9600);
     //Serial.setDebugOutput(true);
 
-    handleDeepSleep();
+    //handleDeepSleep();
 
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(BLUE_LED, OUTPUT);
@@ -54,7 +54,11 @@ void setup() {
     digitalWrite(GREEN_LED, LOW);
     digitalWrite(RED_LED, LOW);
 
-    if (! connectWifi()) {
+    long start = micros();
+    bool conned = connectWifi();
+    printTime(start, micros(), "Wifi Connect Time");
+    
+    if (! conned) {
       Serial.println("Wifi connection error. Going to sleep.");
       signalErrorBlick();
       deepSleep(SLEEP_SECONDS);
@@ -89,9 +93,13 @@ void loop() {
             if(httpCode == HTTP_CODE_OK) {
                 String payload = http.getString();
                 processServerResponse(payload);
+            } else {
+              Serial.printf("[HTTP] GET... failed, status: %s\n", http.errorToString(httpCode).c_str());
+              signalErrorBlick();
             }
         } else {
             Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+            signalErrorBlick();
         }
 
         http.end();
@@ -99,10 +107,15 @@ void loop() {
 
     batteryCheck();
 
-    long processingTime = millis() - startTime;
-    Serial.println(((String)"Cycle took: ") + processingTime + " ms");
+    printTime(startTime, micros(), "Cycle took time");
 
     deepSleep(SLEEP_SECONDS);
+}
+
+void printTime(long uStart, long uEnd, String msg) {
+  long uDur = uEnd - uStart;
+  double dur = uDur / 1000.0 / 1000.0;
+  Serial.println(String(dur) + " - " + msg);
 }
 
 void batteryCheck() {
@@ -113,7 +126,8 @@ void batteryCheck() {
   Serial.println((String)"Battery level: " + voltage + " V");
 
   if (voltage <= 3.6) {
-    signalErrorBlick();
+    signalWarnBlick();
+    //signalErrorBlick();
   }
 }
 
@@ -175,7 +189,7 @@ void signalRelayState(bool open) {
  */
 bool connectWifi() {
     int connWait = 10; //seconds
-    int delayMs = 400; //ms
+    int delayMs = 50; //ms
     int ticksWait = connWait * 1000 / delayMs;
 
     Serial.println("\nChecking the wifi.");
@@ -194,13 +208,16 @@ bool connectWifi() {
       WiFi.begin(ssid, ssidPass);
     }
 
+    int i = 0;
     while (ticksWait-- > 0 && WiFi.status() != WL_CONNECTED) {
       Serial.print(".");
       Serial.print(WiFi.status());
 
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(5);
-      digitalWrite(LED_BUILTIN, HIGH);
+      if ((i++ % 10) == 0) {
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(5);
+        digitalWrite(LED_BUILTIN, HIGH);
+      }
 
       delay(delayMs);
     }
@@ -247,7 +264,15 @@ void deepSleep(int seconds) {
   bool deepSleeped = true;
   system_rtc_mem_write(ESP_RTC_ADDRESS_DEEP_SLEEP_INDICATOR, &deepSleeped, 1);
 
-  ESP.deepSleep(seconds * 1000000, WAKE_RF_DISABLED);
+  //ESP.deepSleep(seconds * 1000000, WAKE_RF_DISABLED);
+  ESP.deepSleep(seconds * 1000000);
+}
+
+void signalWarnBlick() {
+  for (int i = 0; i < 3; i++) {
+    blick(RED_LED, 50);
+    delay(50);
+  }
 }
 
 /**
