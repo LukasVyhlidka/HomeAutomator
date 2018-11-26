@@ -22,9 +22,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +50,8 @@ public class BoilerUpdater {
     private final BoilerRepository boilerRepository;
     private final RoomRepository roomRepository;
 
+    private LocalDateTime lastUpdateTime = LocalDateTime.now();
+
     public BoilerUpdater(final String boilerId, final CubeClient cubeClient, final BoilerChangeRepository changeRepository,
                          final BoilerRepository boilerRepository, final RoomRepository roomRepository) {
         Validate.notNull(boilerId, "boilerId can not be null;");
@@ -61,6 +65,10 @@ public class BoilerUpdater {
         this.changeRepository = changeRepository;
         this.boilerRepository = boilerRepository;
         this.roomRepository = roomRepository;
+    }
+
+    public LocalDateTime getLastUpdateTime() {
+        return this.lastUpdateTime;
     }
 
     @Scheduled(fixedRate = 1 * 60 * 1000, initialDelay = 0)
@@ -94,6 +102,8 @@ public class BoilerUpdater {
             this.changeRepository.addChange(new BoilerChange(this.boilerId, newState));
             logger.info("Updated Boiler [{}] to state [{}]", b.getId(), b.getState());
         }
+
+        this.lastUpdateTime = LocalDateTime.now();
 
         logger.debug("Update Boiler end [{}]", b.getId());
     }
