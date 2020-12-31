@@ -1,6 +1,6 @@
 package org.vyhlidka.homeautomation.eq3;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.vyhlidka.homeautomation.eq3.domain.MMaxMessage;
 
 import static org.assertj.core.api.Assertions.assertThat;

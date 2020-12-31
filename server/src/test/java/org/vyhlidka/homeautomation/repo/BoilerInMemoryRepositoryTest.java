@@ -1,9 +1,11 @@
 package org.vyhlidka.homeautomation.repo;
 
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.vyhlidka.homeautomation.domain.Boiler;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Created by lucky on 18.12.16.
@@ -12,35 +14,35 @@ public class BoilerInMemoryRepositoryTest {
 
     private BoilerRepository repository;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         this.repository = new BoilerInMemoryRepository();
     }
 
-    @Test(expected = ElementNotFoundExcepion.class)
+    @Test
     public void testGetNonExisting() throws Exception {
-        Boiler b = this.repository.getBoiler("XYZ");
+        assertThatThrownBy(() -> this.repository.getBoiler("XYZ")).isInstanceOf(ElementNotFoundExcepion.class);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testGetNullId() throws Exception {
-        this.repository.getBoiler(null);
+        assertThatThrownBy(() -> this.repository.getBoiler(null)).isInstanceOf(NullPointerException.class);
     }
 
-    @Test(expected = RepositoryException.class)
+    @Test
     public void testAddNullId() throws Exception {
         Boiler b = new Boiler();
         b.setState(Boiler.BoilerState.SWITCHED_ON);
 
-        this.repository.setBoiler(b);
+        assertThatThrownBy(() -> this.repository.setBoiler(b)).isInstanceOf(RepositoryException.class);
     }
 
-    @Test(expected = RepositoryException.class)
+    @Test
     public void testNullState() throws Exception {
         Boiler b = new Boiler();
         b.setId("TestBoiler");
 
-        this.repository.setBoiler(b);
+        assertThatThrownBy(() -> this.repository.setBoiler(b)).isInstanceOf(RepositoryException.class);
     }
 
     @Test

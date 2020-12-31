@@ -1,25 +1,26 @@
 package org.vyhlidka.homeautomation.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Created by lucky on 27.12.16.
  */
 public class IterableUtilTest {
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testWithFirstNull() throws Exception {
-        IterableUtil.concat(null, new ArrayList<>());
+        assertThatThrownBy(() -> IterableUtil.concat(null, new ArrayList<>())).isInstanceOf(NullPointerException.class);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testWithSecondNull() throws Exception {
-        IterableUtil.concat(null, new ArrayList<>());
+        assertThatThrownBy(() -> IterableUtil.concat(null, new ArrayList<>())).isInstanceOf(NullPointerException.class);
     }
 
     @Test

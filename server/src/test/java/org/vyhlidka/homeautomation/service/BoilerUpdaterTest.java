@@ -1,11 +1,11 @@
 package org.vyhlidka.homeautomation.service;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.vyhlidka.homeautomation.domain.Boiler;
 import org.vyhlidka.homeautomation.domain.Room;
 import org.vyhlidka.homeautomation.eq3.CubeClient;
@@ -18,7 +18,6 @@ import org.vyhlidka.homeautomation.repo.RoomRepository;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -26,7 +25,7 @@ import static org.mockito.Mockito.when;
 /**
  * Created by lucky on 27.12.16.
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class BoilerUpdaterTest {
 
     public static final String BOILER_ID = "Boiler1";
@@ -44,7 +43,7 @@ public class BoilerUpdaterTest {
 
     private BoilerUpdater updater;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         this.updater = new BoilerUpdater(BOILER_ID, this.cubeClient, this.boilerChangeRepo, this.boilerRepo, this.roomRepository);
     }

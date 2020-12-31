@@ -1,7 +1,7 @@
 package org.vyhlidka.homeautomation.util;
 
 import org.assertj.core.api.Assertions;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.vyhlidka.homeautomation.domain.Boiler;
 import org.vyhlidka.homeautomation.domain.BoilerChange;
 

@@ -1,10 +1,13 @@
 package org.vyhlidka.homeautomation.eq3;
 
 import org.assertj.core.groups.Tuple;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.vyhlidka.homeautomation.eq3.domain.LMaxMessage;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+;
 
 /**
  * Created by lucky on 26.12.16.
@@ -13,24 +16,25 @@ public class LMessageParserTest {
 
     private LMessageParser parser = new LMessageParser();
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testNullMessage() throws Exception {
-        parser.parse(null);
+        assertThatThrownBy(() -> parser.parse(null)).isInstanceOf(NullPointerException.class);
+
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testBadFormat() throws Exception {
-        parser.parse("Hello");
+        assertThatThrownBy(() -> parser.parse("Hello")).isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testBlank() throws Exception {
-        parser.parse(" ");
+        assertThatThrownBy(() -> parser.parse(" ")).isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testDifferentMessageType() throws Exception {
-        parser.parse("C:blahblahblah");
+        assertThatThrownBy(() -> parser.parse("C:blahblahblah")).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
