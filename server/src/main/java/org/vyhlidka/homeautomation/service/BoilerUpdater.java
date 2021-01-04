@@ -202,7 +202,7 @@ public class BoilerUpdater {
         // Either there is at least one opened valve or there are no valves at all.
         boolean valveOpened = !anyValve || devices.stream()
                 .filter(d -> d.type == LMaxMessage.MaxDeviceType.VALVE)
-                .anyMatch(v -> v.valvePosition > 0);
+                .anyMatch(v -> v.valvePosition > 10);
 
         boolean on = thermostatOn && valveOpened;
 
