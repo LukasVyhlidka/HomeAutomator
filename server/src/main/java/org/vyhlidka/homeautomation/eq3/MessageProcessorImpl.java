@@ -46,7 +46,7 @@ public class MessageProcessorImpl implements MessageProcessor {
         }
 
         // Default message type
-        return new MaxMessage(message);
+        return new MaxMessage(msgType, message);
     }
 
 }

@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Created by lucky on 26.12.16.
@@ -27,6 +29,10 @@ import java.util.function.Consumer;
 public class CubeClientImpl implements CubeClient {
 
     private static final Logger logger = LoggerFactory.getLogger(CubeClientImpl.class);
+
+    private CubeSocket cubeSocket;
+
+    private List<MaxMessage> lastMMsgCache = new ArrayList<>();
 
     private final String host;
     private final int port;
@@ -59,41 +65,116 @@ public class CubeClientImpl implements CubeClient {
     public List<MaxMessage> getInitialMessages() {
         List<MaxMessage> messages = new ArrayList<>();
 
-        this.processCubeLines(line -> messages.add(this.processor.processMessage(line)));
+        logger.debug("Calling Cube.");
+        try {
+            CubeSocket socket = this.getConnectedSocket();
+
+            /*PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out.append("q:\r\n");
+            out.flush();*/
+
+            socket.append("l:\r\n");
+            socket.append("f:\r\n");
+
+            String line;
+            while ((line = socket.readLine()) != null) {
+                logger.debug("\t{}", line);
+                final MaxMessage maxMessage = processor.processMessage(line);
+                messages.add(maxMessage);
+                if ("F".equals(maxMessage.msgType)) {
+                    //F should be last because it was last command we sent.
+                    break;
+                }
+            }
+
+            final List<MaxMessage> mMessages = messages.stream().filter(msg -> "M".equals(msg.getMessageType())).collect(Collectors.toList());
+            if (mMessages.isEmpty()) {
+                // no M message (it is loaded only for new connections to cube), add it from cache
+                logger.debug("M message is not present, adding from cache");
+                messages.addAll(this.lastMMsgCache);
+            } else {
+                // M message is present, add it to the cache
+                logger.debug("M message is present, adding to cache");
+                this.lastMMsgCache = mMessages;
+            }
+
+            logger.debug("All lines read.");
+
+        } catch (IOException e) {
+            logger.error("Cube call error", e);
+            this.releaseSocket();
+            throw new IllegalStateException("Cube call error", e);
+        }
+        logger.debug("Cube called.");
+
+        /*this.processCubeLines(line -> {
+            final MaxMessage msg = this.processor.processMessage(line);
+            messages.add(msg);
+            return msg.isLast();
+        });*/
 
         return messages;
     }
 
-    private void processCubeLines(Consumer<String> lineConsumer) {
+    private void processCubeLines(Function<String, Boolean> lineConsumer) {
+
         logger.debug("Calling Cube.");
-        try (Socket socket = new Socket()) {
-            socket.setSoTimeout(5 * 1000);
-            socket.connect(new InetSocketAddress(this.host, this.port), 5 * 1000);
+        try {
+            CubeSocket socket = this.getConnectedSocket();
 
-            // TODO: Blah...
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            /*PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
             out.append("q:\r\n");
-            out.flush();
+            out.flush();*/
 
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    logger.debug("\t{}", line);
-                    lineConsumer.accept(line);
+            socket.append("l:\r\n");
+            socket.append("f:\r\n");
+
+            String line;
+            while ((line = socket.readLine()) != null) {
+                logger.debug("\t{}", line);
+                boolean last = lineConsumer.apply(line);
+                if (last) {
+                    break;
                 }
-
-                logger.debug("All lines read.");
             }
+
+            logger.debug("All lines read.");
+
         } catch (IOException e) {
             logger.error("Cube call error", e);
+            this.releaseSocket();
             throw new IllegalStateException("Cube call error", e);
         }
         logger.debug("Cube called.");
+    }
+
+    private CubeSocket getConnectedSocket() {
+        if (this.cubeSocket != null && !this.cubeSocket.isClosed()) {
+            return this.cubeSocket;
+        }
+
+        this.cubeSocket = new CubeSocket(this.host, this.port);
+
+        // TODO: Blah wait for cube data...
+        try {
+            Thread.sleep(1500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return this.cubeSocket;
+    }
+
+    private void releaseSocket() {
+        if (this.cubeSocket != null) {
+            try {
+                this.cubeSocket.close();
+            } catch (IOException e) {
+                logger.error("Cube client release error", e);
+            }
+        }
+        this.cubeSocket = null;
+
+        logger.info("Cube client released");
     }
 }

@@ -14,12 +14,17 @@ public class MMaxMessage extends MaxMessage {
     public final List<MaxDeviceMeta> devices;
 
     public MMaxMessage(final String message, int index, int count, List<MaxRoomMeta> rooms, List<MaxDeviceMeta> devices) {
-        super(message);
+        super("M", message);
 
         this.index = index;
         this.count = count;
         this.rooms = Collections.unmodifiableList(rooms);
         this.devices = Collections.unmodifiableList(devices);
+    }
+
+    @Override
+    public String getMessageType() {
+        return "M";
     }
 
     public static class MaxRoomMeta {

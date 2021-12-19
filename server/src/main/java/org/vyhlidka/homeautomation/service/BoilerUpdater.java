@@ -70,7 +70,7 @@ public class BoilerUpdater {
         return this.lastUpdateTime;
     }
 
-    @Scheduled(fixedRate = 1 * 60 * 1000, initialDelay = 0)
+    @Scheduled(fixedRate = 1 * 30 * 1000, initialDelay = 0)
     public void updateBoiler() {
         logger.debug("Update Boiler start [{}]", this.boilerId);
 

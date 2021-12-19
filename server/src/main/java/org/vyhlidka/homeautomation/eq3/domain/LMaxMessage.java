@@ -13,7 +13,7 @@ public class LMaxMessage extends MaxMessage {
     public final List<MaxDevice> devices;
 
     public LMaxMessage(final String message, final List<MaxDevice> devices) {
-        super(message);
+        super("L", message);
 
         Validate.notNull(devices, "devices can not be null;");
         this.devices = Collections.unmodifiableList(devices);
@@ -25,6 +25,7 @@ public class LMaxMessage extends MaxMessage {
                 "devices=" + devices +
                 '}';
     }
+    
 
     public static class MaxDevice {
 

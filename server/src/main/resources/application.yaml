@@ -8,4 +8,4 @@ eQ3.cube:
   port: 62910
 
 
-  logging.level.org.vyhlidka: DEBUG
+#logging.level.org.vyhlidka: DEBUG
