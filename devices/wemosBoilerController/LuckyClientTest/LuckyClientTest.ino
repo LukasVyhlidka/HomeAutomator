@@ -137,11 +137,14 @@ void batteryCheck() {
 void processServerResponse(String data) {
   Serial.println("data: " + data);
 
-  StaticJsonBuffer<200> jsonBuffer;
-  JsonObject& root = jsonBuffer.parseObject(data);
+  StaticJsonDocument<200> root;
+  DeserializationError err = deserializeJson(root, data);
 
-  if (!root.success()) {
+  if (err) {
     Serial.println("Data JSON processing failed.");
+
+    signalErrorBlick();
+    
     return;
   }
 
@@ -302,6 +305,9 @@ void signalErrorBlick() {
     blick(RED_LED, 50);
     delay(100);
   }
+
+  // turn on in case of an error.
+  signalRelayState(true);
 }
 
 void blick(int pin, int onTime) {
