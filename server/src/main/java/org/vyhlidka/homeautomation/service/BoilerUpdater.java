@@ -17,6 +17,7 @@ import org.vyhlidka.homeautomation.repo.BoilerRepository;
 import org.vyhlidka.homeautomation.repo.ElementNotFoundExcepion;
 import org.vyhlidka.homeautomation.repo.RoomRepository;
 import org.vyhlidka.homeautomation.util.BoilerStatistics;
+import org.vyhlidka.homeautomation.util.Box;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -131,13 +132,25 @@ public class BoilerUpdater {
 
             Room room = this.roomRepository.getRoom(roomEntry.getKey().id);
             if (room == null) {
-                room = new Room(roomEntry.getKey().id, roomEntry.getKey().name, Boiler.BoilerState.SWITCHED_ON);
+                room = new Room(roomEntry.getKey().id, roomEntry.getKey().name, Boiler.BoilerState.SWITCHED_ON, -999.0, -999.0);
             }
 
-            final Boiler.BoilerState newState = this.figureNewBoilerState(room.state, roomEntry.getValue());
+            final List<LMaxMessage.MaxDevice> roomDevices = roomEntry.getValue();
+            final Boiler.BoilerState newState = this.figureNewBoilerState(room.state, roomDevices);
+
+            // obtain actual and target temperature
+            Box<Double> actualTemp = new Box(room.actualTemp);
+            Box<Double> targetTemp = new Box(room.targetTemp);
+            roomDevices.stream()
+                    .filter(d -> d.type == LMaxMessage.MaxDeviceType.THERMOSTAT)
+                    .findFirst()
+                    .ifPresent(termostat -> {
+                        actualTemp.set(termostat.getTemperature());
+                        targetTemp.set(termostat.getTargetTemperature());
+                    });
 
             logger.debug("Room [{}] state is {}", roomEntry.getKey().name, newState);
-            this.roomRepository.saveRoom(new Room(room.id, room.name, newState));
+            this.roomRepository.saveRoom(new Room(room.id, room.name, newState, actualTemp.get(), targetTemp.get()));
         }
 
         logger.debug("Deleting [{}] rooms", roomsToDel.size());

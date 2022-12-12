@@ -25,7 +25,7 @@ public class LMaxMessage extends MaxMessage {
                 "devices=" + devices +
                 '}';
     }
-    
+
 
     public static class MaxDevice {
 
@@ -61,6 +61,21 @@ public class LMaxMessage extends MaxMessage {
             this.dateUntil = dateUntil;
             this.timeUntil = timeUntil;
             this.actualTemperature = actualTemperature;
+        }
+
+        /**
+         * Returns actual temp in celsius
+         */
+        public double getTemperature() {
+            return (double) this.actualTemperature / 10;
+        }
+
+        /**
+         * Returns target temp in celsius
+         * @return
+         */
+        public double getTargetTemperature() {
+            return (double) this.temperature / 2;
         }
 
         @Override

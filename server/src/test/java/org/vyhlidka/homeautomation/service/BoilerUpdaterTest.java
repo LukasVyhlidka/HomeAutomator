@@ -100,7 +100,7 @@ public class BoilerUpdaterTest {
     }
 
     private void mockDefaultRoomRepo(Boiler.BoilerState state) {
-        when(this.roomRepository.getRoom(-1)).thenReturn(new Room(-1, "Default", state));
+        when(this.roomRepository.getRoom(-1)).thenReturn(new Room(-1, "Default", state, 19.9, 20.0));
     }
 
     @Test

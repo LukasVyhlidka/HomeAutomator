@@ -29,7 +29,7 @@ public class RoomEndpoint {
     }
 
     @RequestMapping(method = RequestMethod.GET)
-    public List<Room> getBoilers() {
+    public List<Room> getRooms() {
         return this.roomRepository.getRooms();
     }
 
